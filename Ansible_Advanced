@@ -1,0 +1,968 @@
+Lab setup:
+Issues installing Ansible and its dependencies
+Once the Debian VM is up and running make the following changes to the /etc/apt/sources.list file to get the Ansible installation working right.
+
+Comment the line starting deb cdrom
+
+Uncomment bottom two lines starting deb and deb-src
+
+Add the below two lines:
+
+deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
+deb http://ftp.de.debian.org/debian sid main
+Final file:
+
+#
+# deb cdrom:[Debian GNU/Linux 8.9.0 _Jessie_ - Official amd64 DVD Binary-1 20170723-11:49]/ jessie contrib main
+#deb cdrom:[Debian GNU/Linux 8.9.0 _Jessie_ - Official amd64 DVD Binary-1 20170723-11:49]/ jessie contrib main
+#deb http://deb/debian.org/debian jessie main
+#deb-src http://deb.debian.org/debian stretch main
+deb http://security.debian.org/ jessie/updates main contrib
+deb-src http://security.debian.org/ jessie/updates main contrib
+# jessie-updates, previously known as 'volatile'
+# A network mirror was not selected during install.  The following entries
+# are provided as examples, but you should amend them as appropriate
+# for your mirror of choice.
+#
+deb http://ftp.debian.org/debian/ jessie-updates main contrib
+deb-src http://ftp.debian.org/debian/ jessie-updates main contrib
+deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
+deb http://ftp.de.debian.org/debian sid main
+Once file is updated, run apt-get update and then run apt-get install ansible
+
+Enabling SSH on the VM
+If you need SSH enabled on the system, follow the below steps:
+
+Ensure the /etc/apt/sources.list file has been updated as per above
+
+Run the command: apt-get update 
+
+Run the command: apt-get install openssh-server
+
+Run the command: service sshd start
+
+Steps:
+Setup the controller server on VirtualBox
+  osboxes.org/debian
+    DL the VDI
+	Create new
+	Settings > Network > Bridged adapter
+	Start VM
+	
+Username: osboxes
+Password: osboxes.org
+Root Account Password: osboxes.org
+VB Guest Additions & VMware Tools: Installed
+Keyboard Layout: US (Qwerty)
+VMware Compatibility: Version 10+
+
+Install ansible - docs.ansible.com  
+  Installation Guide
+
+Install on Centos8 - https://computingforgeeks.com/how-to-install-and-configure-ansible-on-rhel-8-centos-8/
+   20  dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+   21  dnf install -enablerepo epel-playground ansible
+   22  dnf install --enablerepo epel-playground ansible
+   
+   Built Centos8 machines:
+centos8 - 10.0.2.15/192.168.1.182
+centos8t001 - 10.0.2.15/192.168.1.135
+centos8t002 - 10.0.2.15/192.168.1.134
+   
+Created ansible ID and keys.
+
+Set up inventory:
+Edit /etc/ansible/hosts or local inventory.txt
+all:
+  hosts:
+    192.168.204.128:
+      ansible_host: cosmo001
+    192.168.204.129:
+      ansible_host: cosmo002
+
+Test as ansible user:
+$ ansible all -m ping   -- or --
+$ ansible targets -m ping -i inventory.txt
+
+
+Docker Demo (Optional):
+Skipped for later
+Docker Image - ubuntu-ssh-enabled
+The Docker file used to create the ubuntu-ssh-enabled Docker image is located here.
+
+https://github.com/mmumshad/ubuntu-ssh-enabled 
+
+
+
+Run the container:
+
+docker run -d mmumshad/ubuntu-ssh-enabled
+
+Identify the Internal IP
+
+docker inspect <container-id-name>
+
+SSH
+
+ssh <container-ip>
+
+Username: root
+
+Password: Passw0rd
+
+
+
+It is based on the Docker documentation here:
+
+https://docs.docker.com/engine/examples/running_ssh_service/
+
+
+Section 1 Coding Exercise:
+Demo of coding exercises
+
+Section 2:
+Web Application
+Python Flask and MySQL database - Simple web application
+1. Identify the server
+2. Install python
+3. Install, configure, and start MySQL
+4. Install Flask
+5. Code the application
+6. Run the application
+
+
+WebApp  Installation Instructions for Centos 8
+
+
+The installation procedure is a bit different on Centos 7. So those of you following this course from the first course, please follow the below instructions:
+
+# Install Python Pip and dependencies on Centos 8
+
+-------------------------------------------------
+sudo dnf install -y epel-release 
+sudo dnf install python2 python2-pip
+ln -s /usr/bin/python2.7 /usr/bin/python
+ln -s /usr/bin/pip2 /usr/bin/pip
+
+sudo pip install flask flask-mysql
+
+# If you come across a certification validation error while running the above command, please use the below command.
+
+# sudo pip install --trusted-host files.pythonhosted.org --trusted-host pypi.org --trusted-host pypi.python.org flask flask-mysql
+dnf upgrade
+# Install MySQL Server on Centos 8
+
+---------------------------------------------
+
+wget http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm
+
+sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm
+
+sudo dnf update
+sudo dnf upgrade
+
+sudo dnf install mysql-server
+
+sudo systemctl start mysqld
+
+# Create the Database and Add Database
+
+$ mysql
+mysql> CREATE DATABASE employee_db;
+mysql> CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'Passw0rd';
+mysql> GRANT ALL ON employee_db.* TO 'db_user'@'localhost';
+mysql> USE employee_db;
+mysql> CREATE TABLE employees (name VARCHAR(20));
+
+mysql> INSERT INTO employees VALUES ('JOHN');
+
+https://github.com/kodekloudhub/simple_web_application
+Copy the contents of app.py to a local app.py
+
+# Start Web Server
+$ python app.py
+
+Initially runs on 127.0.0.1:5000  Use flask command to test
+export FLASK_APP=app.py
+flask run --host=0.0.0.0
+
+Test accessing via IP
+
+Exercises:
+-- Web Application 1
+Update the host on the play to work with our target server "db_and_web_server_web_server"
+-
+  name: Deploy a web application
+  hosts: db_and_web_server     <-- Changed from "localhost"
+  tasks:
+    - name: Install dependencies
+	
+-- Web Application 2
+Update the task to use the "apt" module to install all required packages. Use a loop to install all packages in one task:
+-
+  name: Deploy a web application
+  hosts: db_and_web_server
+  tasks:
+    - name: Install dependencies
+      apt: name={{ item }} state=present
+      with_items:
+       - python
+       - python-setuptools
+       - python-dev
+       - build-essential
+       - python-pip
+       - python-mysqldb
+
+-- Web Application 3
+Create a new task to install the mysql packages:
+- name: Install MySQL Database
+    apt: name="{{ item }}" state=present
+    with_items:
+      - mysql-server
+      - mysql-client
+		
+-- Web Application 4
+Create a new task and use "service" module to start the "mysql" service.  Ensure you set enabled to true so the servoce starts on reboot:
+- name: Start the mysql service
+    service:
+      name: mysql
+      state: started
+      enabled: true
+		
+-- Web Application 5
+Create a new task and use the "mysql_db" module to create a new database by the name "employee_db":
+- name: Create the database
+    mysql_db:
+      name: employee_db
+      state: present
+		
+-- Web Application 6
+Create a new task and use "mysql_user" mpodule to create a new user:
+- name: Create the mysql user
+    mysql_user:
+      name: db_user
+      password: Passw0rd
+      priv: '*.*:ALL'
+      host: '%'
+      state: present
+		
+-- Web Application 7
+Use the "pip" module to install python dependencies:
+- name: Install python dependencies
+    pip:
+	  name: "{{ item }}"
+	  state: present
+    with_items:
+	  - flask
+	  - flask-mysql
+
+-- Web Application 8
+Use the "copy" module to copy the application code to /opt/app.py:
+- name: Copy web-server code
+  copy: src=app.py dest=/opt/app.py
+		
+-- Web Application 9
+Use the "shell" module to start the application using flask
+ - name: Start the Web Application
+   shell: 'FLASK_APP=/opt/app.py nohup flask run --host=0.0.0.0 &'
+    
+-- Web Application 10
+Add a vars section under the play and define db_name, db_user, and db_password Then replace the static definitions to use the variable name
+-
+  name: Deploy a web application
+  hosts: db_and_web_server
+  vars:
+    db_name: employee_db    <-- Added the vars at top
+    db_user: db_user         -- Changed static values to {{ var }}
+    db_password: Passw0rd
+
+
+Section 3 File Separation
+You can separate variables into separate host_vars and group_vars directories.
+Create host_vars and add yml files with vars for each host
+Create group_vars and add yml files with vars for the group.
+Create a tasks directory to separate sections of playbooks
+
+Exercises:
+-- File Separation 1
+Move the connection information such as IP and passwords to a new file and remove it from the inventory:
+Note, you need to change the "=" to ":" since they are going into a yaml file now.
+$ cat inventory
+$ mkdir host_vars
+$ cat < host_vars/db_and_web_server.yml
+ansible_ssh_pass: Passw0rd
+ansible_host: 192.168.1.14
+  Remove this info from inventory
+
+-- File Separation 2
+Move the database parameters to the host_vars file now:
+Copy these to db_and_web_server
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+	
+Remove the whole vars: stanza in the playbook
+
+-- File Separation 3:
+Copy the database tasks onto tasks/deploy_db.yml
+    - name: Install MySQL database
+      apt:
+        name: "{{ item }}"
+        state:  installed
+      with_items:
+       - mysql-server
+       - mysql-client
+
+    - name: Start Mysql Service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Create Application Database
+      mysql_db: name={{ db_name }} state=present
+
+
+    - name: Create Application DB User
+      mysql_user: name={{ db_user }} password={{ db_password }} priv='*.*:ALL' host='%' state='present'
+
+ -- File Separation 4:
+ After the first task and before the "flask dependencies" task, add an include statement to include tasks/deploy_db.yml
+   - name: include db install tasks   
+     include: tasks/deploy_db.yml
+	 
+-- File Separation 5:
+Do Nos. 4 and 5 for the web application deployment to tasks/deploy_web.yml:
+Copy tasks from playbook to tasks/deploy_web.yml
+    - name: Install Python Flask dependencies
+      pip:
+        name: '{{ item }}'
+        state: present
+      with_items:
+       - flask
+       - flask-mysql
+
+    - name: Copy web-server code
+      copy: src=app.py dest=/opt/app.py
+
+    - name: Start web-application
+      shell: FLASK_APP=/opt/app.py nohup flask run --host=0.0.0.0 &
+	  
+Add include statement after the db include:
+  - include: tasks/deploy_web.yml
+  
+Section 4: Roles
+Roles are the recommended way for developing a playbook in Ansible
+Creating a role will create the directory structure 
+ansible-galaxy has many pre-built roles galaxy.ansible.com
+
+ansible-galaxy role search mysql
+ansible-galaxy init mysql_db
+ansible-galaxy init flask_web
+
+Exercises:
+-- Roles 1
+Move the mysql tasks from playbook.yml to roles/mysql_db/tasks/main.yml:
+    - name: Install MySQL database
+      apt:
+        name: "{{ item }}"
+        state:  installed
+      with_items:
+       - mysql-server
+       - mysql-client
+
+    - name: Start Mysql Service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Create Application Database
+      mysql_db: name={{ db_name }} state=present
+
+
+    - name: Create Application DB User
+      mysql_user: name={{ db_user }} password={{ db_password }} priv='*.*:ALL' host='%' state='present'
+
+-- Roles 2
+Move the web related tasks from playbook.yml to roles/flask_web/tasks/main.yml:
+    - name: Install Python Flask dependencies
+      pip:
+        name: '{{ item }}'
+        state: present
+      with_items:
+       - flask
+       - flask-mysql
+
+    - name: Copy web-server code
+      copy: src=app.py dest=/opt/app.py
+
+    - name: Start web-application
+      shell: FLASK_APP=/opt/app.py nohup flask run --host=0.0.0.0 &
+
+-- Roles 3
+Create a 3rd role for python dependencies by copying the Install Dependencies section to roles/python/tasks/main.yml:
+    - name: Install dependencies
+      apt: name={{ item }} state=installed
+      with_items:
+       - python
+       - python-setuptools
+       - python-dev
+       - build-essential
+       - python-pip
+       - python-mysqldb
+	   
+-- Roles 4
+Tie it all together with roles in the proper order in playbook.yml:
+-
+  name: Deploy a web application
+  hosts: db_and_web_server
+  roles:
+    - python
+    - mysql_db
+    - flask_web
+	
+-- Roles 5
+Update the current given play to target "db_server" host and apply roles "python" and myswl_db" to it:
+-
+  name: Deploy a mysql DB
+  hosts: db_server
+  roles:
+    - python
+    - mysql_db
+   
+-- Roles 6
+Create a new play called "Deploy a Web server" and target host "web_server".  Apply roles "python" and flask_web" to it.:
+-
+  name: Deploy a mysql DB
+  hosts: db_server
+  roles:
+    - python
+    - mysql_db
+    
+-
+  name: Deploy a web server
+  hosts: web_server
+  roles:
+    - python
+    - flask_web
+	
+
+Section 5: Asynchronous Actions
+Use cases - Run process and check back on it later, run multiple processes at once.
+   Start a web server then logout and check back every minute for 5 minutes to confirm web server stays online.
+     By default, ansible polls every 10 seconds.
+	  
+	 async:360 means ansible will check repeatedly for 6 minutes
+	 poll:60 will poll every minute
+
+   Setting poll value to zero will have ansible move to next tasks. But will go on to exit
+     To keep the play alive, register the async to a variable and use async_status module to check
+	 
+Make sure the module you are using supports async_status
+
+Exercises:
+-- Asynchronus Actions 1
+Make the monitoring task Asynchronous by adding async option to the task to wait for 6 minutes
+-
+  name: Deploy a mysql DB
+  hosts: db_server
+  roles:
+    - python
+    - mysql_db
+
+
+-
+  name: Deploy a Web Server
+  hosts: web_server
+  roles:
+    - python
+    - flask_web
+
+-
+  name: Monitor Web Application for 6 Minutes
+  hosts: web_server
+  command: /opt/monitor_webapp.py
+  async: 360                         <-- Added this line
+  
+-- Asynchronous Actions 2
+Change it to poll every 30 seconds
+
+-
+  name: Monitor Web Application for 6 Minutes
+  hosts: web_server
+  command: /opt/monitor_webapp.py
+  async: 360                         
+  poll: 30             <-- Added this line
+  
+-- Asynchronous Actions 3
+Update the poll value for both tass to 0 to "fire and forget the monitoring tasks.
+-
+  name: Deploy a mysql DB
+  hosts: db_server
+  roles:
+    - python
+    - mysql_db
+
+-
+  name: Deploy a Web Server
+  hosts: web_server
+  roles:
+    - python
+    - flask_web
+
+-
+  name: Monitor Web Application for 6 Minutes
+  hosts: web_server
+  command: /opt/monitor_webapp.py
+  async: 360
+  poll: 0            <-- Edited these lines
+
+-
+  name: Monitor Database for 6 Minutes
+  hosts: db_server
+  command: /opt/monitor_database.py
+  async: 360
+  poll: 0            <-- Edited this line
+  
+-- Asynchronous Actions 4
+Register the results of the monitoring tasks into variables "webapp_result" and "database_result"
+-
+  name: Deploy a mysql DB
+  hosts: db_server
+  roles:
+    - python
+    - mysql_db
+
+-
+  name: Deploy a Web Server
+  hosts: web_server
+  roles:
+    - python
+    - flask_web
+
+-
+  name: Monitor Web Application for 6 Minutes
+  hosts: web_server
+  command: /opt/monitor_webapp.py
+  async: 360
+  poll: 0
+  register: webapp_result
+-
+  name: Monitor Database for 6 Minutes
+  hosts: db_server
+  command: /opt/monitor_database.py
+  async: 360
+  poll: 0
+  register: database_result
+  
+Section 6: Strategy
+Defines how a playbook is executed in Ansible
+Strategy 1: All-in-One (linear) mode runs on all servers in parallel. Completes a task on all servers before moving to the next task
+Stragegy 2: Free mode (Strategy: Free) Each server runs al of its tasks independent of all other servers
+Stragegy 3: Batch processing (serial: 3) lets you control the number of servers to run at a time
+
+Forks: Ansible uses parallel processes (forks) at run time. Default is 5 at a time.  Change in configuration but make sure you have enough bandwith for your setting
+
+Exercises:
+-- Strategy 1
+Update the playbook to run against all 10 servers. Use the group nameto target all servers in the group
+Note: group is [app_servers] in inventory
+
+-
+  name: Deploy a web application
+  hosts: app_servers  <-- Just changed the hosts definition to the group
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...
+
+-- Strategy 2
+Use the serial directive to run the tasks on only 2 servers at a time
+-
+  name: Deploy a web application
+  hosts: app_servers
+  serial: 2        <-- Added this line
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...
+	
+-- Strategy 3
+Update the serial directive to use an array instead of a value. Provide 2,3,5 as values
+-
+  name: Deploy a web application
+  hosts: app_servers
+  serial:      <-- Syntax for array
+    - 2
+    - 3
+    - 5
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...
+	
+-- Strategy 4
+Update the serial directive to use a percentage (20%) instead of a value
+-
+  name: Deploy a web application
+  hosts: app_servers
+  serial: "20%"      <-- Using a percentage
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...
+	
+-- Strategy 5
+Use free strategy to accomplish this task
+-
+  name: Deploy a web application
+  hosts: app_servers
+  strategy: free      <-- Free strategy
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...
+	
+Section 7: Error Handling
+Default is Ansible will try to complete the play on all servers. If one fails, the others will continue barring errors on those servers.
+any_errors_fatal: true   This will cause the entire playbook to stop on any error on any server.
+
+Can send mail at the end of tasks:
+- mail:
+    to: devops@corp.com
+	subject: Server Deployed!
+	body: Web Server Deployed
+  ignore_errors: yes          <-- Ignores error and continues
+  
+Error checking:
+- command: cat /var/log/server.log/server
+  register: command_output
+  failed_when: "'ERROR' in command_output.stdout"
+  
+Exercises:
+-- Error Handling 1
+Set the any_errors_fatal option to True for the play
+-
+  name: Deploy a web application
+  hosts: app_servers
+  any_errors_fatal: true  <-- Added this line
+  vars:
+    db_name: employee_db
+    db_user: db_user
+    db_password: Passw0rd
+  tasks:
+    ...  
+
+-- Error Handling 2
+Set the ignore_errors option on the mail task to "yes" to ignore errors
+- name: "Send notification email"
+      mail:
+        to: devops@corp.com
+        subject: Server Deployed!
+        body: Web Server Deployed Successfully
+      ignore_errors: yes      <-- Added this line
+	  
+	  
+Section 8 Templating - jinja2:
+Creating content with common text and variables for unique values.
+debug module - print a message in the play
+tasks:
+  - debug
+      msg: "My name is {{ my_name }}
+	  
+jinja2 - Full featured templating engine for python
+
+Examples of formatting:
+The name is {{my_name}} => The name id Bond
+The name is {{my_name|upper}} => The name is Bond
+The name is {{my_name|lower}} => The name is bond
+The name is {{my_name|title}} => The name is Bond
+The name is {{my_name|replace("Bond","Bourne")}} => The name is Bourne
+The name is {{first_name|default("James")}} {{my_name}} => The name is James Bond
+
+Note: upper, lower, title, and the like are called filters
+
+Filters - List and Set
+{{[1,2,3]|min}}     => 1
+{{[1,2,3]|max}}     => 3
+{{[1,2,3,2]|unique}}  => 1,2,3
+{{[1,2,3,4]|union([4,5])}}    => 1,2,3,4,5
+{{[1,2,3,4]|intersect([4,5])}}    => 4
+{{100|random}}      => Random number
+{{["The","name","is","Bond"]|join(" ")}}   => The name is Bond
+    Note: The (" ") is the separatoe for the join function
+	
+Filters - File
+{{"/etc/hosts"|basename}}     => hosts
+{{"c:\windows\hosts"|win_basename}}    => hosts
+{{"c:\windows\hosts"|win_splitdrive}}  => ["c:","\windows\hosts"]
+    Note: win_splitdrive outputs an array with drive and path
+	
+{{"c:\windows\hosts"|win_splitdrive|first}}   => "c:"
+    Note: splits to the arraythen outputs the first element of the array
+	
+{{"c:\windows\hosts"|win_splitdrive|last}}   => "\windows\hosts"
+
+See jinja2 documentation for list of built in filters
+See ansible documentation playbooks > templating for formatting database
+
+Exercises:
+-- jinja2 Templating 1
+Update the msg field in debug task to print - "The name is bond! james bond!"
+vars:
+    first_name: james
+    last_name: bond
+  tasks:
+  - debug:
+      msg: 'The name is {{last_name}}! {{first_name}} {{last_name}}!'
+
+-- jinja2 Templating 2
+Update the msg field in debug task to print name in title case - "The name is Bond! James Bond!"
+vars:
+    first_name: james
+    last_name: bond
+  tasks:
+  - debug:
+      msg: 'The name is {{last_name|title}}! {{first_name|title}} {{last_name|title}}!'
+	  
+-- jinja2 Templating 3
+Update the msg field in debug task to print the lowest number in the given list using jinja2 filter "min" - "Lowest=6"
+vars:
+    array_of_numbers:
+      - 12
+      - 34
+      - 06
+      - 34
+  tasks:
+  - debug:
+      msg: 'Lowest = {{array_of_numbers|min}}'
+
+--jinja2 Templating 4
+Identify the unique packages from the two lists (web_dependencies and sql_dependencies) using jinja2 filter union and apply it in the given space under with_items
+NOTE: The question asks for unique packages, but the answer key did not require "|unique"
+vars:
+    web_dependencies:
+         - python
+         - python-setuptools
+         - python-dev
+         - build-essential
+         - python-pip
+         - python-mysqldb
+    sql_dependencies:
+         - python
+         - python-mysqldb
+  tasks:
+  - name: Install dependencies
+    apt: name='{{ item }}' state=installed
+    with_items: '{{ web_dependencies|union(sql_dependencies) }}'
+
+-- jinja2 Templating 5
+Update the task to modify the file name to use a random number suffix anywhere from 0 to 1000 using an underscoreto separate
+-
+  name: Generate random file name
+  hosts: localhost
+  tasks:
+  - name: Install dependencies
+    file:
+      path: /tmp/random_file_{{1000|random}}
+      state: touch
+	  
+-- jinja2 Templating 6
+Apply the ipaddr filter to the ip_address in the msg field of debug task to test if IP is valid. It will return false if IP is invalid
+-
+  name: Test valid IP Address
+  hosts: localhost
+  vars:
+    ip_address: 192.168.1.6
+  tasks:
+  - name: Test IP Address
+    debug:
+      msg: IP Address = {{ ip_address|ipaddr }}
+
+-- jinja2 Templating 7
+Use the 'basename' filter to retrieve the file name
+-
+  name: Get filename
+  hosts: localhost
+  vars:
+    file_path: /etc/hosts
+  tasks:
+  - name: Get filename
+    debug:
+      msg: File Name = {{file_path | basename }}
+
+Section 9 - Lookups:
+File Lookup - Say you have a csvfile with credentials for the servers:
+  # CSV File - credentials.csv file
+  Hostname,Password
+  Target1,Passw0rd
+  Target2,Passw0rd
+
+Use a lookup plugin to get the value:
+{{lookup('csvfile','Target1 file=/tmp/credentials.csv delimiter=,')}}   => Passw0rd
+- Where csv file denotes the type of file
+- Where Target1 denotes the Value to Lookup
+
+There are other file types listed under PLaybooks specual topics > Lookups
+
+Exercises:
+Lookups 1   <-- REMEMBER THE QUOTES
+Replace the Ansible Password field to use 'lookup' plugin to lookup a "csvfile", the file is "credentials.csv" and the value to lookup is "web_server"
+-
+  name: Test Connectivity
+  hosts: web_server
+  vars:
+    ansible_ssh_pass: "{{ lookup('csvfile','web_server file=credentials.csv delimiter=,') }}"
+  tasks:
+  - name: Ping target host
+    ping:
+           data: "Test"
+		  
+Lookups 2
+Replace the Ansible Password field to use "lookup" plugin to lookup an "ini" file, the file is credentials.ini and the value to lookup is "password" and the section is "web_server"
+-
+  name: Test Connectivity
+  hosts: web_server
+  vars:
+    ansible_ssh_pass: "{{lookup('ini', 'password section=web_server file=credentials.ini') }}"
+  tasks:
+  - name: Ping target host
+    ping:
+           data: "Test"
+		   
+Section 10 - Vault:
+Unencrypted inventory.txt:
+db_server ansible_ssh_pass=Passw0rd ansible_host=192.168.1.25
+web_server ansible_ssh_pass=Passw0rd ansible_host=192.168.1.26
+
+Encrypted way to save credentials.  
+$ ansible vault encrypt inventory.txt
+    Provide a password when prompted
+
+To run playbooks using the encrypted inventory file
+$ ansible-playbook playbook.yml -i inventory.txt -ask-vault-pass
+    Enter the  Vault password when prompted
+
+You could pass a password to the command also (not secure):
+$ ansible-playbook playbook.yml -i inventory.txt -vault-password-file ~./vault-pass.txt
+
+Use a python script to pass the vault password which adds security:
+$ ansible-playbook playbook.yml -i inventory.txt -vault-password-file ~./vault-pass.py
+    The script will get the password from a secure location through a program and pass it to the command
+	
+To view the contents of an encrypted file:
+$ ansible-vault view inventory.txt
+
+To create an encrypted file:
+$ ansible-vault create inventory.txt
+
+Section 11 - Dynamic Inventory:
+Need to know some basic python scripting 
+Pull inventory from source Satellite, Data PLatform, server.list, etc.
+
+Instead of a static inventory file (inventory.txt), use a script (inventory.py)
+
+Example script:
+#!/usr/bin/env python                                     <-------- shebang for python
+
+import json
+
+# Get inventory data from source - CMDB or any other API
+def get_inventory_data():                                 <---------------------
+    return {                                                                |
+	    "databases": {                                                      |
+		    "hosts": ["db_server"],                                         |
+			"vars": {                                                       |
+			    "ansible_ssh_pass": "Passw0rd",                             |
+				"ansible_ssh_host": "192.168.1.1"                           |
+			}                                                        Retrieve inventory information
+        },                                                              This is a static method
+        "web": {                                                          Must be in json format
+            "hosts": ["web_server"],                                        |
+            "vars": {                                                       |
+               "ansible_ssh_pass": "Passw0rd",                              |
+               "ansible_ssh_host": "192.168.1.2"                            |
+            }                                                               |
+        }                                                                   |
+    }                                                      <--------------------
+
+# Default main function
+if __name__ == "__main__":
+    inventory_data = get_inventory_data ()
+    print(json.dumps(inventory_data))
+
+	
+./inventory.py --list     <-- Will output a json formatted dictionary
+./inventory.py --host web   <-- Will output a dictionary of variables
+
+Examples for scripts:
+https://github.com/ansible/ansible/tree/devel/contrib/inventory
+
+
+Section 12 Custom Modules:
+Modules are python scripts to perform certain tasks.
+
+Example modify the debug module as a custom debug module to print the data with your message
+# ansible-doc debug    <-- man page for debug pulled from a documentation block and examples block in the code
+
+Built-in modules are located by default under /usr/lib/python2.7/dist-packages/ansible/modules
+
+https://github.com/ansible/ansible/tree/devel/lib/ansible/modules
+
+ansible-playable.com review videos, demo playbooks, tools for developing custom modules
+
+docs.ansible.com  custom modules section has link for pytest to test your custom modules
+
+Section 13 Plugins
+The core Ansible engine uses a variety of plugins to tun playbooks:
+Action - To invoke modules
+Connection - To establish communications
+Filter - To manipulate data
+Lookup - To lookup execute actions on the data
+Strategy - To control flow and exection ofplays
+Callback - To handle events of evecution
+Plus many others
+
+https://github.com/ansible/ansible/tree/devel/lib/ansible/plugins/callback
+
+
+Assignment:
+Deploy a web application to cloud
+  - Create 3 servers
+  - Flask Web servers
+  - mysql database
+  - Run services
+  - Configure load balancing
+  - Send server complete message and info on logging into the servers
+  
+
+
+
+
+
+
+
+	
+
+
+
+    
+
+
+ 
+
+
+	 
+	 
+   

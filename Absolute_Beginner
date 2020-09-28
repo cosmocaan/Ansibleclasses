@@ -1,0 +1,580 @@
+Ansible
+
+Virtual Box. Import from osboxes.org
+Template host - 2048G Ram, 2 CPU, Bridged Adapter
+Clones - unique MAC on each clone
+  controller - update /etc/hostname and /etc/hosts
+  target01 - update /etc/hostname and /etc/hosts
+  target02 - update /etc/hostname and /etc/hosts
+  
+yum install ansible
+
+Inventory file in ini format examples:
+  Host only:
+  target02.abc.comtarget01
+  192.168.1.58
+
+  Alias:
+  target03 ansible_host=192.168.1.58
+
+Connecting to hosts: behavioral inventory parameters
+  ansible_host - Name of the host to connect to
+  ansible_port - connection port number
+  ansible_connection - type of connection to the host (ssh, winrm)
+  ansible_password - password used to authenticate to the host FOR WINDOWS
+  ansible_ssh_pass - password used to authenticate to the host FOR SSH
+  
+Groups:
+  # Target Servers
+  target01 ansible_host=192.168.1.231
+  target02 ansible_host=192.168.1.58
+  
+  [targets]
+  target01
+  target02
+
+Inheriting variable values: group variables for groups of groups
+  [targets01]
+  target01
+  target02
+  
+  [webs01]
+  web01
+  web02
+  
+  [all_servers:children]
+  targets01
+  webs01
+  
+
+Create an inventory file:
+  mkdir test-inventory
+  cd test-inventory
+  vi inventory.txt
+    target01 ansible_host=192.168.1.58 ansible_ssh_pass=osboxes.org
+
+Run ping test on a target: 
+  ansible target01 -m ping -i inventory.txt
+    Returns "ping": "pong"
+   
+Add target02
+  Note: You should login to the host to save the ECDSA key fingerprint on servers that have not been logged into:
+    Use ssh keys as a better way
+	
+
+YAML:
+  Key Value Pair:
+    Fruit: Apple
+	Vegetable: Carrot
+	Liquid: Water
+	Meat: Chicken
+	
+  Array/List:
+    Fruits:
+	- Orange
+	- Apple
+	- Banana
+	
+    Vegetables:
+	- Carrot
+	- Cauliflower
+	- Tomato
+	
+  Dictionary/Map:  (Keep spaces aligned to be properties of Banana, Grapes, etc. See wrong example)
+    Banana:
+	    Calories: 105
+		Fat: 0.4 g
+		Carbs: 27 g
+	
+	Grapes:
+	    Calories: 62
+		Fat: 0.3 g
+		Carbs: 16 g
+	
+Example of wrong spacing. Calories would be a property of Banana, but Fat and Carbs would be properties of Calories.
+    Banana:
+	    Calories: 105
+		  Fat: 0.3 g
+		  Carbs: 27 g
+		  
+List of Dictionary example:
+   employees:
+    -
+        name: john
+        gender: male
+        age: 24
+    
+    -
+        name: sarah
+        gender: female
+        age: 28
+		
+List of Dictionary in Dictionary:
+  employee:
+    name: john
+    gender: male
+    age: 24
+    address:
+        city: edison
+        state: 'new jersey'
+        country: 'united states'
+    payslips:                      <-- Note this is an array
+      -
+        month: june
+        amount: 1400
+      
+      -
+        month: july
+        amount: 2400
+      -
+        month: august
+        amount: 3400
+		
+Playbooks:
+  Playbook is a single YAML file
+    - Play - Defines a set of activities (tasks) to be run on hosts
+	  - Task - An action to be performed on the host
+	    - Execute a command
+		- Run a script
+		- Install a package
+		- Shutdown/Restart
+
+
+  The - (dash) indicates an item in a playbook
+  Review Ansible modules and their uses/examples
+  
+  Execution:
+  ansible host -a command  <-- just run a quick command against a host (not recommended)
+  ansible-playbook <playbook.yml>
+  
+
+Ansible Modules:
+  System - Normal administration stuff Unix
+  Command - execute a command on a remote node
+    chdir=/xxx  Change directories
+	creates     Create a filename
+	removes		Deleted a file
+	free_form   See examples for free_form. Not all modules accept free_form
+	script		Ansible will copy the script to remote nodes before executing. No need to pre-copy scripts
+	service 	start, stop, restart services (ex. service: name=postgresql state=started)
+				"started" means make sure state is started making the task idempotent
+	lineinfile	Find a line in a file and replace it or add it if it does not exist
+	
+  Files - Modification of files such as permissions finding files
+  Database - working with databases and configuration
+  Cloud - Many functions specific to a variety of cloud providers
+  Windows - Functions for Windows
+  
+Exercises for Ansible Modules:
+Exercise 1 (run a script):
+  -
+    name: Execute a script on all web server nodes.
+    hosts: web_nodes
+    tasks:
+      - name: Execute a script on all web server nodes.
+        script: /tmp/install_script.sh
+		
+Exercise 2 (start a service):
+
+-
+    name: 'Execute a script on all web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Execute a script on all web server nodes'
+            script: /tmp/install_script.sh
+        -
+            name: 'start httpd services'
+            service: name=httpd state=started
+			
+Exercise 3 (add a lineinfile):
+-
+    name: 'Execute a script on all web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: /etc/resolv.conf
+            lineinfile:
+              path: /etc/resolv.conf
+              line: nameserver 10.1.250.10
+        -
+            name: 'Execute a script'
+            script: /tmp/install_script.sh
+        -
+            name: 'Start httpd service'
+            service:
+                name: httpd
+                state: present
+				
+Exercise 4 (create a new web user):
+-
+    name: 'Execute a script on all web server nodes and start httpd service'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Update entry into /etc/resolv.conf'
+            lineinfile:
+                path: /etc/resolv.conf
+                line: 'nameserver 10.1.250.10'
+        -
+            name: Create a new web user
+            user:
+                name: web_user
+                uid: 1040
+                group: developers
+        -
+            name: 'Execute a script'
+            script: /tmp/install_script.sh
+        -
+            name: 'Start httpd service'
+            service:
+                name: httpd
+                state: present
+
+Exercise 5 (running playbooks):
+
+-- Playbooks on localhost --
+-
+    name: 'Execute two commands on localhost'
+    hosts: localhost
+    tasks:
+        -
+            name: 'Execute a date command'
+            command: date
+        -   name: 'Execute a command to display hosts file'
+            command: cat /etc/hosts
+
+-- Playbooks on remote host --
+-
+    name: 'Execute two commands on web_node1'
+    hosts: web_node1
+    tasks:
+        -
+            name: 'Execute a date command'
+            command: date
+        -
+            name: 'Execute a command to display hosts file'
+            command: 'cat /etc/hosts'
+			
+-- Playbooks on remote group --
+-
+    name: 'Execute two commands on web_node1'
+    hosts: boston_nodes
+    tasks:
+        -
+            name: 'Execute a date command'
+            command: date
+        -
+            name: 'Execute a command to display hosts file'
+            command: 'cat /etc/hosts'
+			
+-- Run separate plays on separate nodes ni the same playbook --
+-
+    name: 'Execute command to display date on web_node1'
+    hosts: web_node1
+    tasks:
+        -
+            name: 'Execute a date command'
+            command: date
+-
+    name: 'Execute a command to display hosts file contents on web_node2'
+    hosts: web_node2
+    tasks:
+        -
+            name: 'Execute a command to display hosts file'
+            command: cat /etc/hosts
+
+-- Sample shutdown/restart of web and db nodes --
+  -- Sample inventory file --
+# Sample Inventory File
+
+# Web Servers
+sql_db1 ansible_host=sql01.xyz.com ansible_connection=ssh ansible_user=root ansible_ssh_pass=Lin$Pass
+sql_db2 ansible_host=sql02.xyz.com ansible_connection=ssh ansible_user=root ansible_ssh_pass=Lin$Pass
+web_node1 ansible_host=web01.xyz.com ansible_connection=ssh ansible_user=administrator ansible_ssh_pass=Win$Pass
+web_node2 ansible_host=web02.xyz.com ansible_connection=ssh ansible_user=administrator ansible_ssh_pass=Win$Pass
+web_node3 ansible_host=web03.xyz.com ansible_connection=ssh ansible_user=administrator ansible_ssh_pass=Win$Pass
+
+[db_nodes]
+sql_db1
+sql_db2
+
+[web_nodes]
+web_node1
+web_node2
+web_node3
+
+[all_nodes:children]
+db_nodes
+web_nodes
+
+
+  -- The Playbook --
+-
+    name: 'Stop the web services on web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Stop the web services on web server nodes'
+            command: 'service httpd stop'
+-
+    name: 'Shutdown the database services on db server nodes'
+    hosts: db_nodes
+    tasks:
+        -
+            name: 'Shutdown the database services on db server nodes'
+            command: service mysql stop
+-
+    name: 'Restart all servers (web and db) at once'
+    hosts: all_nodes
+    tasks:
+        -
+            name: 'Restart all servers (web and db) at once'
+            command: /sbin/shutdown -r
+-
+    name: 'Start the database services on db server nodes'
+    hosts: db_nodes
+    tasks:
+        -
+            name: 'Start the database services on db server nodes'
+            command: service mysql start
+-
+    name: 'Start the web services on web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Start the web services on web server nodes'
+            command: service httpd start
+
+  
+Exercise 6 (Ansible Modules):
+  -- Example script module --
+-
+  name: 'Execute a script on all web server nodes.'
+  hosts: web_nodes
+  tasks:
+      -
+          name: 'Execute a script on all web server nodes.'
+          script: /tmp/install_script.sh
+
+  -- Example service module --
+-
+    name: 'Execute a script on all web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Execute a script on all web server nodes'
+            script: /tmp/install_script.sh
+        -
+            name: 'start httpd services'
+            service:
+                name: httpd
+                state: started
+			
+  -- Example lineinfile module --
+-
+    name: 'Execute a script on all web server nodes'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Execute a script on all web server nodes'
+            script: /tmp/install_script.sh
+        -
+            name: 'start httpd services'
+            service:
+                name: httpd
+                state: started
+				
+  -- Example user module --
+-
+    name: 'Execute a script on all web server nodes and start httpd service'
+    hosts: web_nodes
+    tasks:
+        -
+            name: 'Update entry into /etc/resolv.conf'
+            lineinfile:
+                path: /etc/resolv.conf
+                line: 'nameserver 10.1.250.10'
+        -
+            name: 'Create a new web user'
+            user:
+                name: web_user
+                uid: 1040
+                group: developers
+        -
+            name: 'Execute a script'
+            script: /tmp/install_script.sh
+        -
+            name: 'Start httpd service'
+            service:
+                name: httpd
+                state: present
+				
+
+Exercise 7 (Ansible Variables):
+  -- Example nameserver ip from inventory file --
+  -- Inventory file --
+# Sample Inventory File
+
+localhost ansible_connection=localhost nameserver_ip=10.1.250.10
+
+  -- Example playbook using variable from inventory for set nameserver ip --
+-
+    name: 'Update nameserver entry into resolv.conf file on localhost'
+    hosts: localhost
+    tasks:
+        -
+            name: 'Update nameserver entry into resolv.conf file'
+            lineinfile:
+                path: /etc/resolv.conf
+                line: "nameserver {{ nameserver_ip }}"
+
+  --Example playbook to set a variable for snmp_port in inventory and use in playbook --
+  -- Inventory file --
+# Sample Inventory File
+
+localhost ansible_connection=localhost nameserver_ip=10.1.250.10
+
+  -- Example playbook using variable form inventory file --
+# Sample Inventory File
+
+localhost ansible_connection=localhost nameserver_ip=10.1.250.10
+
+  -- Example variables within the playbook (watch the syntax) --
+-
+    hosts: localhost
+    vars:
+        car_model: 'BMW M3'
+        country_name: USA
+        title: 'Systems Engineer'
+    tasks:
+        -
+            command: 'echo "My car''s model is {{ car_model }}"'
+        -
+            command: 'echo "I live in the {{ country_name }}"'
+        -
+            command: 'echo "I work as a {{title}}"'
+
+
+Exercise 8 (Conditionals):
+
+The register module records the output of a command.  Then you can use a when condition to look for key words.
+
+  -- Use when condition to run the task id the host is the database server (from inventory) --
+-
+    name: 'Execute a script on all web server nodes'
+    hosts: all_servers
+    tasks:
+        -
+            service: 'name=mysql state=started'
+            when: ansible_host == "server4.company.com"
+
+  -- Print results based on the age variable --
+-
+    name: 'Am I an Adult or a Child?'
+    hosts: localhost
+    vars:
+        age: 25
+    tasks:
+        -
+            command: 'echo "I am a Child"'
+            when: age < 18
+        -
+            command: 'echo "I am an Adult"'
+            when: age >= 18
+			
+  -- Use variable from register to check for condition of IP existing --
+  -
+    name: 'Add name server entry if not already entered'
+    hosts: localhost
+    tasks:
+        -
+            shell: 'cat /etc/resolv.conf'
+            register: command_output
+        -
+            shell: 'echo "nameserver 10.0.250.10" >> /etc/resolv.conf'
+            when: 'command_output.stdout.find("10.0.250.10") == -1'
+			 
+Exercise 9 (loops):
+  Check out all the loops examples in the Ansible documentation
+  
+  -- Print a list of fruits --
+-
+    name: 'Print list of fruits'
+    hosts: localhost
+    fruits:
+        - Apple
+        - Banana
+        - Grapes
+        - Orange
+    tasks:
+        -
+            command: 'echo "{{ item }}"'
+            with_items: '{{ fruits }}'
+
+  -- Install multiple software packages --
+-
+    name: 'Install required packages'
+    hosts: localhost
+    vars:
+        packages:
+            - httpd
+            - binutils
+            - glibc
+            - ksh
+            - libaio
+            - libXext
+            - gcc
+            - make:
+            - sysstat
+            - unixODBC
+            - mongodb
+            - nodejs
+            - grunt
+    tasks:
+        -
+            yum: 
+                name: '{{ item }}'
+                state: present
+            with_items: '{{ packages }}'
+			
+Section 10 (roles)
+include module can combine multiple small playbooks to make one big one.
+vars_files can include a file with all the variables needed.
+ Roles is a directory structure that define a function example:
+  Ansible Project
+   | inventory.txt
+   | setup_applications.yml
+   | roles (folder)
+   ---| webservers (folder)
+	  ---| files (folder)
+      ---| templates (folder)
+      ---| tasks (folder)
+      ---| handlers (folder)
+      ---| vars {folder)
+      ---| defaults (folder)
+      ---| meta (folder)
+
+Section 11:
+galaxy.ansible.com - share roles and playbooks with others
+
+Patterns:
+hosts: host1,host2,host3
+or
+group1, host1
+or
+host*
+
+Dynamic inventory - inventory.py could reach out to a source for dynamic inventory (hammer?)
+
+Custom modules - python program - get template @ ansible docs ansible developer guide
+				How to develop a module
+				
+
+
+	  
+
+
+
+			
+
